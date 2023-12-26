@@ -6,7 +6,7 @@
 #include <time.h>
 #include <string.h>
 
-void gotoxy(int x, int y) {
+void gotoXY(int x, int y) {
     printf("\033[%d;%dH", y + 1, x + 1); // ANSI escape sequence for cursor positioning
 }
 
@@ -14,7 +14,7 @@ int microsecond(double num) {
     return (int)(num * 1000000);
 }
 
-void clrscr() {
+void clrScr() {
     printf("\033[H\033[J");
 }
 
@@ -38,7 +38,7 @@ void clrInpBufForScanf(){
 }
 
 void erasePrevAnim(int x, int y) {
-    gotoxy(x, y); // Erase before block animate
+    gotoXY(x, y); // Erase before block animate
     printf(" ");
 }
 
@@ -58,7 +58,7 @@ void colorFont(char color[]) {
     } else if (color == "reset") {
         printf("\033[0m");
     } else {
-        clrscr();
+        clrScr();
         colorFont("reset");
         printf("Error color %s", color);
         exit(0);
@@ -66,22 +66,22 @@ void colorFont(char color[]) {
 }
 
 void stage(int marginLeft, int width, int marginTop, int height, int blockMiddle){
-    clrscr();
+    clrScr();
     for (int i = marginLeft-1; i <= width+1; i++) { // Form a stage
          for (int j = marginTop; j <= height+1; j++) {     
             if (j == height){  
                 colorFont("red");
-                gotoxy(i, j);
+                gotoXY(i, j);
                 printf("▲");        
             }
             if (j == height && i == blockMiddle){
                 colorFont("violet");
-                gotoxy(i, j);
+                gotoXY(i, j);
                 printf("☒");
             }
             if (i == marginLeft-1 || i == width+1 || j == height+1 ) {
                 colorFont("violet");
-                gotoxy(i, j);
+                gotoXY(i, j);
                 printf("☒");
             }
         }
@@ -89,10 +89,10 @@ void stage(int marginLeft, int width, int marginTop, int height, int blockMiddle
 }
 
 void counter(int marginLeft, int arrBlockTop, char name[100]) {
-    gotoxy(marginLeft + 2, 2);
+    gotoXY(marginLeft + 2, 2);
     colorFont("yellow");
     printf("Player: %s", name);
-    gotoxy(marginLeft + 5, 3);
+    gotoXY(marginLeft + 5, 3);
     printf("Score: %d", arrBlockTop);
 }
 
@@ -116,7 +116,7 @@ void intro(){
 }
 
 bool gameOverScr(const char str[]) {
-    gotoxy(5, 7);
+    gotoXY(5, 7);
     colorFont("red");
     printf("\n\n\t%s", str);
     printf("\n\nGame Over. Press anything to try again...");
@@ -135,7 +135,7 @@ void changeNumCol(int num) {
 }
 
 void blockDrop(int blockPosX, int i, int randNum2, float speed) {
-    gotoxy(blockPosX, i);
+    gotoXY(blockPosX, i);
     changeNumCol(randNum2);
     printf("%d", randNum2);
     usleep(microsecond(speed / 2));
@@ -148,7 +148,7 @@ int randomNum(int start, int end) {
 
 void prodBlockStack(int arrBlockTop, int blockMiddle, int height, int arrBlock[]){
     for (int i = 0; i <= arrBlockTop; i++) { // Produce a stack block after the block landed
-        gotoxy(blockMiddle, height - i - 1);
+        gotoXY(blockMiddle, height - i - 1);
         changeNumCol(arrBlock[i]);
         printf("%d", arrBlock[i]);
     }
@@ -175,7 +175,7 @@ void leaderboard(){
 // START OF THE GAME //
 // ------------------------------------------------------------------------------------------------------------------------------ //
 int main() {
-    clrscr();
+    clrScr();
     char name[100];
     bool play = false;
     struct Player player[100];
@@ -190,7 +190,7 @@ int main() {
         do {
             key = _getch();
         } while (key != '1');
-        clrscr();
+        clrScr();
         intro();
         colorFont("reset");
         printf("Enter your name: ");
@@ -219,7 +219,7 @@ int main() {
             key = clrInpBuffer();
             
             while (!gameOver) {
-                gotoxy(blockMiddle, blockSpawnPosY); // Place 1 block into the middle
+                gotoXY(blockMiddle, blockSpawnPosY); // Place 1 block into the middle
                 changeNumCol(randNum1);
                 printf("%d", randNum1);
                 arrBlock[0] = randNum1;
@@ -237,7 +237,7 @@ int main() {
                         alternateNum = 1;
                     }
                 }
-                gotoxy(blockPosX, blockPosY); // Block spawn with animation
+                gotoXY(blockPosX, blockPosY); // Block spawn with animation
                 changeNumCol(randNum2);
                 printf("%d", randNum2);
                 if (_kbhit() || autoG) { // Detect if user press or autoG activate
@@ -289,7 +289,7 @@ int main() {
                         }
                     } else if (key == 'c'){ // If user press c
                         char input[50];
-                        gotoxy(8, 2);
+                        gotoXY(8, 2);
                         colorFont("reset");
                         printf("Enter your comment: ");
                         scanf("%49[^\n]", input); // This is how you input string to prevent from bug when animating
@@ -303,12 +303,12 @@ int main() {
                     } else if (key == 'r'){ // if user press r, restart the game
                         gameOver = true;
                     } else if (key == 'p'){
-                        gotoxy(8, 7);
+                        gotoXY(8, 7);
                         colorFont("white");
                         printf("Pause, press any key to play.\n\n");
-                        gotoxy(16, 9);
+                        gotoXY(16, 9);
                         printf("1 - RESUME\n");
-                        gotoxy(18, 10);
+                        gotoXY(18, 10);
                         printf("2 - END\n");
                         key = _getch();
                         if (key == 2){
@@ -319,11 +319,11 @@ int main() {
                     }
                 }
                 if (arrBlockTop == 10){
-                    gotoxy(5, 7);
+                    gotoXY(5, 7);
                     colorFont("red");
                     printf("\n\n\tYou win!");
                     leaderboard(arrBlockTop);
-                    printf("\n\nYou are in the %d place");
+                    printf("\n\nYou are in the %d place", arrBlockTop);
                     waitKeyPress();
                 }
                 key = clrInpBuffer(); // This will reset the user clicked to prevent from bug when animating
