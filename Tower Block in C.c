@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <stdarg.h>
 
 void gotoXY(int x, int y) {
     printf("\033[%d;%dH", y + 1, x + 1); // ANSI escape sequence for cursor positioning
@@ -18,7 +19,7 @@ void clrScr() {
     printf("\033[H\033[J");
 }
 
-void waitKeyPress() {
+void waitAnyKeyPress() {
     while (!_kbhit()) {
         // Do nothing while waiting for a key press
     }
@@ -98,30 +99,21 @@ void counter(int marginLeft, int arrBlockTop, char name[100]) {
 
 void intro(){
     colorFont("yellow");
-    printf("+============================+\n");
-    printf("| _____                      |\n");
-    printf("||_   _|____      _____ _ __ |\n");
-    printf("|  | |/ _ \\ \\ /\\ / / _ \\ '__||\n");
-    printf("|  | | (_) \\ V  V /  __/ |   |\n");
-    printf("| _|_|\\___/ \\_/\\_/ \\___|_|   |\n");
-    printf("|| __ )| | ___   ___| | __   |\n");
-    printf("||  _ \\| |/ _ \\ / __| |/ /   |\n");
-    printf("|| |_) | | (_) | (__|   <    |\n");
-    printf("||____/|_|\\___/ \\___|_|\\_\\   |\n");
-    printf("| / ___| __ _ _ __ ___   ___ |\n");
-    printf("|| |  _ / _` | '_ ` _ \\ / _ \\|\n");
-    printf("|| |_| | (_| | | | | | |  __/|\n");
-    printf("| \\____|\\__,_|_| |_| |_|\\___||\n");
-    printf("+============================+\n\n");
-}
-
-bool gameOverScr(const char str[]) {
-    gotoXY(5, 7);
-    colorFont("red");
-    printf("\n\n\t%s", str);
-    printf("\n\nGame Over. Press anything to try again...");
-    waitKeyPress();
-    return true;
+    printf("+============================+          \n");
+    printf("| _____                      |          \n");
+    printf("||_   _|____      _____ _ __ |          \n");
+    printf("|  | |/ _ \\ \\ /\\ / / _ \\ '__||      \n");
+    printf("|  | | (_) \\ V  V /  __/ |   |         \n");
+    printf("| _|_|\\___/ \\_/\\_/ \\___|_|   |      \n");
+    printf("|| __ )| | ___   ___| | __   |          \n");
+    printf("||  _ \\| |/ _ \\ / __| |/ /   |        \n");
+    printf("|| |_) | | (_) | (__|   <    |          \n");
+    printf("||____/|_|\\___/ \\___|_|\\_\\   |      \n");
+    printf("| / ___| __ _ _ __ ___   ___ |          \n");
+    printf("|| |  _ / _` | '_ ` _ \\ / _ \\|        \n");
+    printf("|| |_| | (_| | | | | | |  __/|          \n");
+    printf("| \\____|\\__,_|_| |_| |_|\\___||       \n");
+    printf("+============================+        \n\n");
 }
 
 void changeNumCol(int num) {
@@ -157,46 +149,177 @@ void prodBlockStack(int arrBlockTop, int blockMiddle, int height, int arrBlock[]
 struct Player {
     char name[50];
     int score;
+    int rank; // Add the rank field
     struct Player* next;
 };
 
-void leaderboard(){
+
+// Function to save the leaderboard to a text file
+void saveLeaderboard(const char* filename, struct Player* first) {
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        perror("Error opening file for writing");
+        return;
+    }
+    // Write each player's data to the file
+    struct Player* current = first;
+    while (current != NULL) {
+        fprintf(file, "%s %d\n", current->name, current->score);
+        current = current->next;
+    }
+    fclose(file);
+}
+
+// Function to load the leaderboard from a text file
+struct Player* loadLeaderboard(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Error opening file for reading");
+        return NULL;
+    }
+    // Read player data from the file and construct the linked list
     struct Player* first = NULL;
-    struct Player* second = NULL;
-    struct Player* third = NULL;
-    first = (struct Player*)malloc(sizeof(struct Player));
-    second = (struct Player*)malloc(sizeof(struct Player));
-    third = (struct Player*)malloc(sizeof(struct Player));
-    first->next = second;
-    second->next = third;
-    third->next = NULL;
+    struct Player* current = NULL;
+    while (1) {
+        struct Player* player = malloc(sizeof(struct Player));
+        int bytesRead = fscanf(file, "%s %d", player->name, &player->score);
+        if (bytesRead != 2) {
+            free(player); // Free the unused memory
+            break;
+        }
+        player->next = NULL;
+        if (first == NULL) {
+            first = player;
+            current = first;
+        } else {
+            current->next = player;
+            current = player;
+        }
+    }
+    fclose(file);
+    return first;
+}
+
+// Function to free the allocated memory for the linked list
+void freeLinkedList(struct Player* first) {
+    struct Player* current = first;
+    while (current != NULL) {
+        struct Player* temp = current;
+        current = current->next;
+        free(temp);
+    }
+}
+
+// Function to display the leaderboard
+void displayLeaderboard(struct Player* first) {
+    clrScr();
+    colorFont("yellow");
+    gotoXY(7, 7);
+    printf("\t    LEADERBOARD:\n\n");
+    int rank = 1;
+    struct Player* current = first;
+    while (current != NULL) {
+        if (rank == 1){
+            colorFont("yellow");
+        } else if (rank == 2){
+            colorFont("green");
+        } else if (rank == 3){
+            colorFont("cyan");
+        } else {
+            colorFont("reset");
+        }
+        printf("\t%d. %s - %d\n", rank, current->name, current->score);
+        current = current->next;
+        rank++;
+    }
+    if (first == NULL){ // If the leaderboard empty
+        printf("\n      Be the one to play now!");
+    }
+}
+
+// Function to update the leaderboard
+struct Player* updateLeaderboard(struct Player* first, char playerName[50], int score) {
+    struct Player* newPlayer = (struct Player*)malloc(sizeof(struct Player));
+    strncpy(newPlayer->name, playerName, sizeof(newPlayer->name) - 1);
+    newPlayer->score = score;
+    newPlayer->next = NULL;
+    // If the leaderboard is empty or the new player has the highest score
+    if (first == NULL || score > first->score) {
+        newPlayer->next = first;
+        newPlayer->rank = 1; // Set rank as 1 for the new player
+        first = newPlayer;
+        return first;
+    }
+    struct Player* prev = NULL;
+    struct Player* current = first;
+    // Traverse the leaderboard to find the correct position for the new player
+    int rank = 1;
+    while (current != NULL && score <= current->score) {
+        prev = current;
+        current = current->next;
+        rank++;
+    }
+    // Insert the new player into the leaderboard
+    prev->next = newPlayer;
+    newPlayer->next = current;
+    newPlayer->rank = rank; // Set the rank for the new player
+    // Update the ranking for all players after the new player
+    while (current != NULL) {
+        current->rank = rank + 1;
+        current = current->next;
+        rank++;
+    }
+    saveLeaderboard("leaderboard.txt", first);  // Save the leaderboard to the file
+    return first;
+}
+
+char gameOverScr(const char str[]) {
+    gotoXY(7, 7);
+    colorFont("red");
+    printf("\t%s", str);
+    gotoXY(7, 9);
+    printf("   Game Over. Press 1 to try again...");
+    gotoXY(7, 11);
+    printf("\t 1 - TRY AGAIN?");
+    gotoXY(7, 12);
+    printf("\t 2 - MAIN MENU");
+    char key;
+    do { key = _getch(); // Wait until user click
+    } while (key != '1' && key != '2');
+    return key;
 }
 
 // START OF THE GAME //
-// ------------------------------------------------------------------------------------------------------------------------------ //
+// ---------------------------------------------------------------------------------------------- //
 int main() {
-    clrScr();
+    struct Player* first = NULL;
+    struct Player* loadedLeaderboard = loadLeaderboard("leaderboard.txt");
+    freeLinkedList(first);
     char name[100];
     bool play = false;
-    struct Player player[100];
-    int slot = 0;
+    char key = clrInpBuffer();
+    first = updateLeaderboard(first, "Akihiro", 999);
+    first = updateLeaderboard(first, "ey", 222);
+    first = updateLeaderboard(first, "boi", 696);
+    clrScr();
     while (true){
         intro();
         colorFont("reset");
         printf("            Press:\n");
         printf("          1 - START\n");
         printf("       2 - LEADERBOARD\n");
-        int key;
-        do {
-            key = _getch();
-        } while (key != '1');
+        do { key = _getch(); // Wait until user click
+        } while (key != '1' && key != '2');
+        if (key == '2'){
+            displayLeaderboard(first);
+            waitAnyKeyPress();
+        }
         clrScr();
         intro();
         colorFont("reset");
         printf("Enter your name: ");
-        scanf("%s", &name);
-        strcpy(player[slot].name, name);
-        slot++;
+        scanf("%100[^\n]", name);
+        clrInpBufForScanf();
         play = true;
         while (play) {
             int marginTop = 5, marginLeft = 10;
@@ -206,19 +329,19 @@ int main() {
             int maxBlockHeight = 10;
             int arrBlock[maxBlockHeight];
             int blockSpawnPosY = height - 1;
-            int arrBlockTop = 0;
+            int arrBlockTop = 0, score = 0;
             int blockMiddle = marginLeft + (width - marginLeft) / 2;
             int numStart = 1, numEnd = 3;
             int randNum1 = randomNum(numStart, numEnd);
             int randNum2 = randomNum(numStart, numEnd);
             int alternateNum = 1;
-            bool gameOver = false;
+            bool restart = false;
             bool autoG = false;
+            bool refresh = false;
             stage(marginLeft, width, marginTop, height, blockMiddle);
             counter(marginLeft, arrBlockTop, name);
-            key = clrInpBuffer();
-            
-            while (!gameOver) {
+            key = clrInpBuffer();    
+            while (!restart) {
                 gotoXY(blockMiddle, blockSpawnPosY); // Place 1 block into the middle
                 changeNumCol(randNum1);
                 printf("%d", randNum1);
@@ -249,11 +372,10 @@ int main() {
                             blockDrop(blockPosX, i, randNum2, speed);
                         }
                         if (arrBlock[arrBlockTop] == randNum2 && blockPosX == blockMiddle) {
+                            score++;
                             arrBlockTop++; // This part is using Stack push
                             arrBlock[arrBlockTop] = randNum2;
-                            stage(marginLeft, width, marginTop, height, blockMiddle);
-                            counter(marginLeft, arrBlockTop, name);
-                            prodBlockStack(arrBlockTop, blockMiddle, height, arrBlock);
+                            refresh = true;
                             if (alternateNum == 1) {
                                 alternateNum = 2;
                                 blockPosX = marginLeft;
@@ -266,13 +388,20 @@ int main() {
                             for (int i = height - arrBlockTop - 1; i <= blockSpawnPosY; i++) { // Perform block drop
                                 blockDrop(blockPosX, i, randNum2, speed);
                             }
-                            gameOver = gameOverScr("You fell into the spike...");
+                            first = updateLeaderboard(first, name, score);
+                            key = gameOverScr("You fell into the spike...");
+                            if (key == '2'){
+                                restart = true; 
+                                play = false; // Back to main menu
+                                clrScr();
+                            } else {
+                                refresh = true;
+                            }
                         } else if (arrBlock[arrBlockTop] != randNum2) { // If it's land on different number, it perform a pop stack
                             erasePrevAnim(blockMiddle, height - arrBlockTop - 1);
+                            score--;
                             arrBlockTop--;
-                            stage(marginLeft, width, marginTop, height, blockMiddle);
-                            counter(marginLeft, arrBlockTop, name);
-                            prodBlockStack(arrBlockTop, blockMiddle, height, arrBlock);
+                            refresh = true;
                             if (alternateNum == 1) {
                                 alternateNum = 2;
                                 blockPosX = marginLeft;
@@ -282,56 +411,74 @@ int main() {
                             }
                             randNum2 = randomNum(numStart, numEnd);
                             if (arrBlockTop < 0) { // Check if less than 0. if true, game over (This is stack underflow or if it's empty)
-                                gameOver = gameOverScr(" Stack Underflow.");
+                                first = updateLeaderboard(first, name, score);
+                                play, restart = gameOverScr(" Stack Underflow.");
+                                if (key == '2'){
+                                    restart = true; 
+                                    play = false; // Back to main menu
+                                    clrScr();
+                                } else {
+                                    refresh = true;
+                                }
                             }
-                        } else {
-                            gameOver = gameOverScr("I dont know this game over");
                         }
                     } else if (key == 'c'){ // If user press c
                         char input[50];
                         gotoXY(8, 2);
                         colorFont("reset");
                         printf("Enter your comment: ");
-                        scanf("%49[^\n]", input); // This is how you input string to prevent from bug when animating
+                        scanf("%100[^\n]", input); // This is how you input string to prevent from bug when animating
                         if (strcmp(input, "autoG") == 0) { // If the user input "autoG"
                             autoG = true;
                         }
                         clrInpBufForScanf(); // This will reset the input to prevent from bug when animating
-                        stage(marginLeft, width, marginTop, height, blockMiddle);
-                        counter(marginLeft, arrBlockTop, name);
-                        prodBlockStack(arrBlockTop, blockMiddle, height, arrBlock);
+                        refresh = true;   
                     } else if (key == 'r'){ // if user press r, restart the game
-                        gameOver = true;
-                    } else if (key == 'p'){
-                        gotoXY(8, 7);
-                        colorFont("white");
-                        printf("Pause, press any key to play.\n\n");
-                        gotoXY(16, 9);
-                        printf("1 - RESUME\n");
-                        gotoXY(18, 10);
-                        printf("2 - END\n");
-                        key = _getch();
-                        if (key == 2){
-
-                        }
-                        stage(marginLeft, width, marginTop, height, blockMiddle);
-                        counter(marginLeft, arrBlockTop, name);
+                        restart = true;
+                    } else if (key == 'e'){
+                        first = updateLeaderboard(first, name, score);
+                        restart = true; 
+                        play = false; // Back to main menu
+                    } else if (autoG && key == '1' || key == '2' || key == '3' ){
+                        randNum2 = key - '0'; // That's how you convert char to int
                     }
                 }
                 if (arrBlockTop == 10){
-                    gotoXY(5, 7);
-                    colorFont("red");
-                    printf("\n\n\tYou win!");
-                    leaderboard(arrBlockTop);
-                    printf("\n\nYou are in the %d place", arrBlockTop);
-                    waitKeyPress();
+                    clrScr();
+                    gotoXY(4, 6);
+                    colorFont("yellow");
+                    printf("\t      You win!");
+                    gotoXY(4, 9);
+                    printf("\t    1 - CONTINUE");
+                    gotoXY(4, 10);
+                    printf("\t      2 - END");
+                    do { key = _getch(); // Wait until user click
+                    } while (key != '1' && key != '2');
+                    if (key == '1'){
+                        arrBlockTop = 0;
+                        if (speed > 0.02){
+                            speed -= 0.02; // Increase speed every win
+                        }
+                        refresh = true;
+                        randNum1 = randomNum(numStart, numEnd);
+                    } else if (key == '2'){
+                        first = updateLeaderboard(first, name, score);
+                        restart = true; 
+                        play = false; // Back to main menu
+                    }
+                }
+                if (refresh){ // Refresh the stage and score
+                    refresh = false;    
+                    stage(marginLeft, width, marginTop, height, blockMiddle);
+                    counter(marginLeft, score, name); 
+                    prodBlockStack(arrBlockTop, blockMiddle, height, arrBlock);
                 }
                 key = clrInpBuffer(); // This will reset the user clicked to prevent from bug when animating
-                usleep(microsecond(speed)); // Animation speed
+                usleep(microsecond(speed)); // Animation speed      
             }
         }
-        colorFont("reset");
-        return 0;
     }
+    colorFont("reset");
+    return 0;
 }
 
