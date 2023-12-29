@@ -1,5 +1,6 @@
-hacker 20
-jaytzy 10
-Akihiro 9
-jay 5
-bro 3
+hacker 45
+jay 30
+pre 30
+boi 10
+hey 7
+hi 0

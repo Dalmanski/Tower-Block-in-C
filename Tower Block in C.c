@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include <stdarg.h>
 
 #define MAX 10
 #define FILENAME "C:\\Users\\Jayrald John\\Documents\\Code\\Tower Block in C\\leaderboard.txt"
@@ -422,50 +421,31 @@ int main() {
                             score++;
                             arrBlockTop++; // This part is using Stack push
                             arrBlock[arrBlockTop] = randNum2;
-                            refresh = true;
-                            if (alternateNum == 1) {
-                                alternateNum = 2;
-                                blockPosX = marginLeft;
-                            } else if (alternateNum == 2) {
-                                alternateNum = 1;
-                                blockPosX = width;
-                            }
+                            refresh = true;         
                             randNum2 = randomNum(numStart, numEnd);
                         } else if (blockPosX != blockMiddle) { // This will land on the floor and it will game over
                             for (int i = height - arrBlockTop - 1; i <= blockSpawnPosY; i++) { // Perform block drop
                                 blockDrop(blockPosX, i, randNum2, speed);
-                            }
-                            head = updateLeaderboard(head, name, score);          
-                            key = gameOverScr("You fell into the spike...");
+                            }        
+                            key = gameOverScr(" You fell into the spike...");
+                            refresh = true;
+                            restart = true; 
                             if (key == '2'){
-                                restart = true; 
                                 play = false; // Back to main menu
                                 clrScr();
-                            } else {
-                                refresh = true;
                             }
                         } else if (arrBlock[arrBlockTop] != randNum2) { // If it's land on different number, it perform a pop stack
                             erasePrevAnim(blockMiddle, height - arrBlockTop - 1);
                             score--;
                             arrBlockTop--;
                             refresh = true;
-                            if (alternateNum == 1) {
-                                alternateNum = 2;
-                                blockPosX = marginLeft;
-                            } else if (alternateNum == 2) {
-                                alternateNum = 1;
-                                blockPosX = width;
-                            }
                             randNum2 = randomNum(numStart, numEnd);
-                            if (arrBlockTop < 0) { // Check if less than 0. if true, game over (This is stack underflow or if it's empty)
-                                head = updateLeaderboard(head, name, score);          
-                                play, restart = gameOverScr(" Stack Underflow.");
+                            if (arrBlockTop < 0) { // Check if less than 0. if true, game over (This is stack underflow or if it's empty)                          
+                                key = gameOverScr(" Stack Underflow.");
+                                restart = true; 
                                 if (key == '2'){
-                                    restart = true; 
                                     play = false; // Back to main menu
                                     clrScr();
-                                } else {
-                                    refresh = true;
                                 }
                             }
                         }
@@ -483,7 +463,6 @@ int main() {
                     } else if (key == 'r'){ // if user press r, restart the game
                         restart = true;
                     } else if (key == 'e'){
-                        head = updateLeaderboard(head, name, score);       
                         restart = true; 
                         play = false; // Back to main menu
                     } else if (key == '1' || key == '2' || key == '3'){
@@ -512,7 +491,6 @@ int main() {
                         refresh = true;
                         randNum1 = randomNum(numStart, numEnd);
                     } else if (key == '2'){
-                        head = updateLeaderboard(head, name, score);             
                         restart = true; 
                         play = false; // Back to main menu
                         clrScr();
@@ -523,6 +501,14 @@ int main() {
                     stage(marginLeft, width, marginTop, height, blockMiddle);
                     counter(marginLeft, score, name); 
                     prodBlockStack(arrBlockTop, blockMiddle, height, arrBlock);
+                    head = updateLeaderboard(head, name, score);     
+                    if (alternateNum == 1) {
+                        alternateNum = 2;
+                        blockPosX = marginLeft;
+                    } else if (alternateNum == 2) {
+                        alternateNum = 1;
+                        blockPosX = width;
+                    }
                 }
                 key = clrInpBuffer(); // This will reset the user clicked to prevent from bug when animating
                 usleep(microsecond(speed)); // Animation speed      
