@@ -7,6 +7,9 @@
 #include <string.h>
 #include <stdarg.h>
 
+#define MAX 10
+#define FILENAME "C:\\Users\\Jayrald John\\Documents\\Code\\Tower Block in C\\leaderboard.txt"
+
 void gotoXY(int x, int y) {
     printf("\033[%d;%dH", y + 1, x + 1); // ANSI escape sequence for cursor positioning
 }
@@ -63,6 +66,21 @@ void colorFont(char color[]) {
         colorFont("reset");
         printf("Error color %s", color);
         exit(0);
+    }
+}
+
+void box(){
+    for (int i = 0; i <= 18; i++) {
+        for (int j = 0; j <= 17; j++) {
+            if (i == 0 || i == 18) {
+                printf("==");
+            } else if (j == 0 || j == 17) {
+                printf("||");
+            } else {
+                printf("  ");
+            }
+        }
+        printf("\n");
     }
 }
 
@@ -148,141 +166,169 @@ void prodBlockStack(int arrBlockTop, int blockMiddle, int height, int arrBlock[]
 
 struct Player {
     char name[50];
-    int score;
-    int rank; // Add the rank field
-    struct Player* next;
+    int totalScore;
+    struct Player *next;
 };
 
+struct Player *createPlayerNode(const char *name, int score) {
+    struct Player *newPlayer = malloc(sizeof(struct Player));
+    if (newPlayer == NULL) {
+        printf("Memory allocation failed!\n");
+        exit(1);
+    }
+    strcpy(newPlayer->name, name);
+    newPlayer->totalScore = score;
+    newPlayer->next = NULL;
+    return newPlayer;
+}
 
-// Function to save the leaderboard to a text file
-void saveLeaderboard(const char* filename, struct Player* first) {
-    FILE* file = fopen(filename, "w");
+struct Player *addPlayer(struct Player *head, const char *name, int score) {
+    struct Player *newPlayer = createPlayerNode(name, score);
+    newPlayer->next = head;
+    return newPlayer;
+}
+
+void saveLeaderboard(struct Player *head) {
+    FILE *file = fopen(FILENAME, "w");
     if (file == NULL) {
-        perror("Error opening file for writing");
+        printf("Error opening file for writing!\n");
         return;
     }
-    // Write each player's data to the file
-    struct Player* current = first;
-    while (current != NULL) {
-        fprintf(file, "%s %d\n", current->name, current->score);
-        current = current->next;
+    while (head != NULL) {
+        fprintf(file, "%s %d\n", head->name, head->totalScore);
+        head = head->next;
     }
     fclose(file);
 }
 
-// Function to load the leaderboard from a text file
-struct Player* loadLeaderboard(const char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        perror("Error opening file for reading");
-        return NULL;
+struct Player *sortPlayers(struct Player *head) {
+    if (head == NULL || head->next == NULL) {
+        return head;  // List is empty or has only one element, nothing to sort
     }
-    // Read player data from the file and construct the linked list
-    struct Player* first = NULL;
-    struct Player* current = NULL;
-    while (1) {
-        struct Player* player = malloc(sizeof(struct Player));
-        int bytesRead = fscanf(file, "%s %d", player->name, &player->score);
-        if (bytesRead != 2) {
-            free(player); // Free the unused memory
-            break;
+    int swapped;
+    struct Player *temp;
+    do {
+        swapped = 0;
+        struct Player *current = head;
+        struct Player *prev = NULL;
+        while (current != NULL && current->next != NULL) {
+            struct Player *nextNode = current->next;
+            if (current->totalScore < nextNode->totalScore) {
+                // Swap players if they are in the wrong order
+                current->next = nextNode->next;
+                nextNode->next = current;
+                if (prev == NULL) {
+                    head = nextNode;
+                } else {
+                    prev->next = nextNode;
+                }
+                prev = nextNode;
+                swapped = 1;
+            } else {
+                prev = current;
+                current = current->next;
+            }
         }
-        player->next = NULL;
-        if (first == NULL) {
-            first = player;
-            current = first;
-        } else {
-            current->next = player;
-            current = player;
-        }
-    }
-    fclose(file);
-    return first;
+    } while (swapped);
+    saveLeaderboard(head);
+    return head;
 }
 
-// Function to free the allocated memory for the linked list
-void freeLinkedList(struct Player* first) {
-    struct Player* current = first;
+void printRankings(struct Player *head) {
+    int rank = 1;
+    while (head != NULL) {
+        printf("%d. %s - %d\n", rank, head->name, head->totalScore);
+        head = head->next;
+        rank++;
+    }
+}
+
+struct Player *updateLeaderboard(struct Player *head, const char *name, int score) {
+    struct Player *current = head;
+    struct Player *prev = NULL;
     while (current != NULL) {
-        struct Player* temp = current;
+        // Update the total score if the player exists
+        if (strcmp(current->name, name) == 0) {
+            // If the player's highscore is greater than the current score
+            if (score > current->totalScore){
+                current->totalScore = score;
+            }
+            return sortPlayers(head);
+        }
+        prev = current;
         current = current->next;
-        free(temp);
     }
+    // If the player does not exist, add a new player
+    return sortPlayers(addPlayer(head, name, score));
 }
 
-// Function to display the leaderboard
-void displayLeaderboard(struct Player* first) {
+void displayLeaderboard(struct Player *head) {
     clrScr();
     colorFont("yellow");
-    gotoXY(7, 7);
+    box();
+    gotoXY(7, 4);
     printf("\t    LEADERBOARD:\n\n");
     int rank = 1;
-    struct Player* current = first;
-    while (current != NULL) {
-        if (rank == 1){
+    while (head != NULL) {
+        if (rank == 1) {
             colorFont("yellow");
-        } else if (rank == 2){
+        } else if (rank == 2) {
             colorFont("green");
-        } else if (rank == 3){
+        } else if (rank == 3) {
             colorFont("cyan");
         } else {
             colorFont("reset");
         }
-        printf("\t%d. %s - %d\n", rank, current->name, current->score);
-        current = current->next;
+        printf("\t%d. %s - %d\n", rank, head->name, head->totalScore);
+        head = head->next;
         rank++;
     }
-    if (first == NULL){ // If the leaderboard empty
-        printf("\n      Be the one to play now!");
+    colorFont("violet");
+    printf("\n\n      Click anything to start...\n\n");
+}
+
+void freeLinkedList(struct Player *head) {
+    struct Player *current = head;
+    while (current != NULL) {
+        struct Player *nextNode = current->next;
+        free(current);
+        current = nextNode;
     }
 }
 
-// Function to update the leaderboard
-struct Player* updateLeaderboard(struct Player* first, char playerName[50], int score) {
-    struct Player* newPlayer = (struct Player*)malloc(sizeof(struct Player));
-    strncpy(newPlayer->name, playerName, sizeof(newPlayer->name) - 1);
-    newPlayer->score = score;
-    newPlayer->next = NULL;
-    // If the leaderboard is empty or the new player has the highest score
-    if (first == NULL || score > first->score) {
-        newPlayer->next = first;
-        newPlayer->rank = 1; // Set rank as 1 for the new player
-        first = newPlayer;
-        return first;
+struct Player *loadLeaderboard(void) {
+    FILE *file = fopen(FILENAME, "r");
+    if (file == NULL) {
+        printf("Error opening file for reading!\n");
+        return NULL;
     }
-    struct Player* prev = NULL;
-    struct Player* current = first;
-    // Traverse the leaderboard to find the correct position for the new player
-    int rank = 1;
-    while (current != NULL && score <= current->score) {
-        prev = current;
-        current = current->next;
-        rank++;
+    struct Player *head = NULL;
+    char name[50];
+    int score;
+    // Check if the file is empty
+    if (fscanf(file, "%s %d", name, &score) != 2) {
+        fclose(file);
+        return NULL;
     }
-    // Insert the new player into the leaderboard
-    prev->next = newPlayer;
-    newPlayer->next = current;
-    newPlayer->rank = rank; // Set the rank for the new player
-    // Update the ranking for all players after the new player
-    while (current != NULL) {
-        current->rank = rank + 1;
-        current = current->next;
-        rank++;
+    // File is not empty, rewind and read data
+    rewind(file);
+    while (fscanf(file, "%s %d", name, &score) == 2) {
+        head = updateLeaderboard(head, name, score);
     }
-    saveLeaderboard("leaderboard.txt", first);  // Save the leaderboard to the file
-    return first;
+    fclose(file);
+    return head;
 }
 
 char gameOverScr(const char str[]) {
-    gotoXY(7, 7);
     colorFont("red");
+    gotoXY(7, 7);
     printf("\t%s", str);
-    gotoXY(7, 9);
-    printf("   Game Over. Press 1 to try again...");
-    gotoXY(7, 11);
-    printf("\t 1 - TRY AGAIN?");
-    gotoXY(7, 12);
-    printf("\t 2 - MAIN MENU");
+    gotoXY(6, 9);
+    printf("Game Over. Press 1 to try again...");
+    gotoXY(12, 11);
+    printf("1 - TRY AGAIN?");
+    gotoXY(12, 12);
+    printf("2 - MAIN MENU");
     char key;
     do { key = _getch(); // Wait until user click
     } while (key != '1' && key != '2');
@@ -292,17 +338,18 @@ char gameOverScr(const char str[]) {
 // START OF THE GAME //
 // ---------------------------------------------------------------------------------------------- //
 int main() {
-    struct Player* first = NULL;
-    struct Player* loadedLeaderboard = loadLeaderboard("leaderboard.txt");
-    freeLinkedList(first);
+    struct Player *head = loadLeaderboard();
+    // Add or update players
+    //updateLeaderboard(head, "jayrald", 1231);
+    //updateLeaderboard(head, "john", 500);
+    //updateLeaderboard(head, "jayrald", 200);
+    // freeLinkedList(first);
     char name[100];
     bool play = false;
     char key = clrInpBuffer();
-    first = updateLeaderboard(first, "Akihiro", 999);
-    first = updateLeaderboard(first, "ey", 222);
-    first = updateLeaderboard(first, "boi", 696);
-    clrScr();
     while (true){
+        clrScr();
+        gotoXY(0,0);
         intro();
         colorFont("reset");
         printf("            Press:\n");
@@ -311,7 +358,7 @@ int main() {
         do { key = _getch(); // Wait until user click
         } while (key != '1' && key != '2');
         if (key == '2'){
-            displayLeaderboard(first);
+            displayLeaderboard(head);
             waitAnyKeyPress();
         }
         clrScr();
@@ -388,7 +435,7 @@ int main() {
                             for (int i = height - arrBlockTop - 1; i <= blockSpawnPosY; i++) { // Perform block drop
                                 blockDrop(blockPosX, i, randNum2, speed);
                             }
-                            first = updateLeaderboard(first, name, score);
+                            head = updateLeaderboard(head, name, score);          
                             key = gameOverScr("You fell into the spike...");
                             if (key == '2'){
                                 restart = true; 
@@ -411,7 +458,7 @@ int main() {
                             }
                             randNum2 = randomNum(numStart, numEnd);
                             if (arrBlockTop < 0) { // Check if less than 0. if true, game over (This is stack underflow or if it's empty)
-                                first = updateLeaderboard(first, name, score);
+                                head = updateLeaderboard(head, name, score);          
                                 play, restart = gameOverScr(" Stack Underflow.");
                                 if (key == '2'){
                                     restart = true; 
@@ -436,17 +483,20 @@ int main() {
                     } else if (key == 'r'){ // if user press r, restart the game
                         restart = true;
                     } else if (key == 'e'){
-                        first = updateLeaderboard(first, name, score);
+                        head = updateLeaderboard(head, name, score);       
                         restart = true; 
                         play = false; // Back to main menu
-                    } else if (autoG && key == '1' || key == '2' || key == '3' ){
-                        randNum2 = key - '0'; // That's how you convert char to int
+                    } else if (key == '1' || key == '2' || key == '3'){
+                        if (autoG){
+                            randNum2 = key - '0'; // That's how you convert char to int
+                        }
                     }
                 }
-                if (arrBlockTop == 10){
+                if (arrBlockTop == MAX){
                     clrScr();
-                    gotoXY(4, 6);
                     colorFont("yellow");
+                    box();
+                    gotoXY(4, 6);
                     printf("\t      You win!");
                     gotoXY(4, 9);
                     printf("\t    1 - CONTINUE");
@@ -462,9 +512,10 @@ int main() {
                         refresh = true;
                         randNum1 = randomNum(numStart, numEnd);
                     } else if (key == '2'){
-                        first = updateLeaderboard(first, name, score);
+                        head = updateLeaderboard(head, name, score);             
                         restart = true; 
                         play = false; // Back to main menu
+                        clrScr();
                     }
                 }
                 if (refresh){ // Refresh the stage and score
