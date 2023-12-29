@@ -7,10 +7,11 @@
 #include <string.h>
 
 #define MAX 10
-#define FILENAME "C:\\Users\\Jayrald John\\Documents\\Code\\Tower Block in C\\leaderboard.txt"
+#define FILENAME "leaderboard.txt"
+// #define FILENAME "C:\\Users\\Jayrald John\\Documents\\Code\\Tower Block in C\\leaderboard.txt"
 
 void gotoXY(int x, int y) {
-    printf("\033[%d;%dH", y + 1, x + 1); // ANSI escape sequence for cursor positioning
+    printf("\033[%d;%dH", y + 1, x + 1); // ANSI escape sequence for cursor positioning (Position X and Y)
 }
 
 int microsecond(double num) {
@@ -348,6 +349,7 @@ int main() {
     char key = clrInpBuffer();
     while (true){
         clrScr();
+        
         gotoXY(0,0);
         intro();
         colorFont("reset");

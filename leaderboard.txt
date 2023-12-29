@@ -3,4 +3,4 @@ jay 30
 pre 30
 boi 10
 hey 7
-hi 0
+
