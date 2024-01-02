@@ -8,7 +8,7 @@
 
 #define MAX 10
 #define FILENAME "leaderboard.txt"
-// #define FILENAME "C:\\Users\\Jayrald John\\Documents\\Code\\Tower Block in C\\leaderboard.txt"
+//#define FILENAME "C:\\Users\\Jayrald John\\Documents\\Code\\Tower Block in C\\leaderboard.txt"
 
 void gotoXY(int x, int y) {
     printf("\033[%d;%dH", y + 1, x + 1); // ANSI escape sequence for cursor positioning (Position X and Y)
@@ -19,7 +19,8 @@ int microsecond(double num) {
 }
 
 void clrScr() {
-    printf("\033[H\033[J");
+    printf("\033[H\033[J"); // This is how you clear all the screen
+    gotoXY(0,0);
 }
 
 void waitAnyKeyPress() {
@@ -156,6 +157,7 @@ int randomNum(int start, int end) {
     return rand() % (end - start + 1) + start;
 }
 
+// Perform a block dropping
 void prodBlockStack(int arrBlockTop, int blockMiddle, int height, int arrBlock[]){
     for (int i = 0; i <= arrBlockTop; i++) { // Produce a stack block after the block landed
         gotoXY(blockMiddle, height - i - 1);
@@ -170,24 +172,16 @@ struct Player {
     struct Player *next;
 };
 
-struct Player *createPlayerNode(const char *name, int score) {
-    struct Player *newPlayer = malloc(sizeof(struct Player));
-    if (newPlayer == NULL) {
-        printf("Memory allocation failed!\n");
+void clearLeaderboard() {
+    FILE *file = fopen(FILENAME, "w");
+    if (file == NULL) {
+        printf("Error opening file for clearing leaderboard!\n");
         exit(1);
     }
-    strcpy(newPlayer->name, name);
-    newPlayer->totalScore = score;
-    newPlayer->next = NULL;
-    return newPlayer;
+    fclose(file);
 }
 
-struct Player *addPlayer(struct Player *head, const char *name, int score) {
-    struct Player *newPlayer = createPlayerNode(name, score);
-    newPlayer->next = head;
-    return newPlayer;
-}
-
+// Step 3, save all the sorted ranking player
 void saveLeaderboard(struct Player *head) {
     FILE *file = fopen(FILENAME, "w");
     if (file == NULL) {
@@ -201,6 +195,7 @@ void saveLeaderboard(struct Player *head) {
     fclose(file);
 }
 
+// Step 2, sort the player on ranking from highest to lowest score
 struct Player *sortPlayers(struct Player *head) {
     if (head == NULL || head->next == NULL) {
         return head;  // List is empty or has only one element, nothing to sort
@@ -234,32 +229,40 @@ struct Player *sortPlayers(struct Player *head) {
     return head;
 }
 
-void printRankings(struct Player *head) {
-    int rank = 1;
-    while (head != NULL) {
-        printf("%d. %s - %d\n", rank, head->name, head->totalScore);
-        head = head->next;
-        rank++;
-    }
-}
-
+// Step 1 to save that player on the leaderboard
 struct Player *updateLeaderboard(struct Player *head, const char *name, int score) {
     struct Player *current = head;
     struct Player *prev = NULL;
+    // Check if the player already exists
     while (current != NULL) {
-        // Update the total score if the player exists
         if (strcmp(current->name, name) == 0) {
-            // If the player's highscore is greater than the current score
-            if (score > current->totalScore){
+            // Update the total score if the player exists
+            if (score > current->totalScore) {
                 current->totalScore = score;
+                return sortPlayers(head);
             }
-            return sortPlayers(head);
+            return head;  // Player exists, and the score is not higher
         }
         prev = current;
         current = current->next;
     }
-    // If the player does not exist, add a new player
-    return sortPlayers(addPlayer(head, name, score));
+    // If the player does not exist, add a new player while maintaining sorted order
+    struct Player *newPlayer = malloc(sizeof(struct Player));
+    if (newPlayer == NULL) {
+        printf("Memory allocation failed!\n");
+        exit(1);
+    }
+    strcpy(newPlayer->name, name);
+    newPlayer->totalScore = score;
+    newPlayer->next = NULL;
+    // If the new player should be the new head (highest score)
+    if (prev == NULL || score > head->totalScore) {
+        newPlayer->next = head;
+        return sortPlayers(newPlayer);
+    }
+    // Insert the new player at the appropriate position to maintain sorted order
+    prev->next = sortPlayers(newPlayer);
+    return head;
 }
 
 void displayLeaderboard(struct Player *head) {
@@ -349,8 +352,6 @@ int main() {
     char key = clrInpBuffer();
     while (true){
         clrScr();
-        
-        gotoXY(0,0);
         intro();
         colorFont("reset");
         printf("            Press:\n");
@@ -366,7 +367,7 @@ int main() {
         intro();
         colorFont("reset");
         printf("Enter your name: ");
-        scanf("%100[^\n]", name);
+        scanf("%100[^\n]", name);    
         clrInpBufForScanf();
         play = true;
         while (play) {
@@ -457,11 +458,14 @@ int main() {
                         colorFont("reset");
                         printf("Enter your comment: ");
                         scanf("%100[^\n]", input); // This is how you input string to prevent from bug when animating
+                        refresh = true;   
                         if (strcmp(input, "autoG") == 0) { // If the user input "autoG"
                             autoG = true;
+                        } else if (strcmp(input, "erase") == 0){
+                            clearLeaderboard();
+                            refresh = false; // The reason is because it didn't clear the txt file due to struct stored
                         }
                         clrInpBufForScanf(); // This will reset the input to prevent from bug when animating
-                        refresh = true;   
                     } else if (key == 'r'){ // if user press r, restart the game
                         restart = true;
                     } else if (key == 'e'){

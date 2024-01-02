@@ -2,5 +2,4 @@ hacker 45
 jay 30
 pre 30
 boi 10
-hey 7
-
+hey 9
