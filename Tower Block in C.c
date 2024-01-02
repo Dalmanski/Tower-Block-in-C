@@ -422,7 +422,7 @@ int main() {
                         }
                         if (arrBlock[arrBlockTop] == randNum2 && blockPosX == blockMiddle) {
                             score++;
-                            arrBlockTop++; // This part is using Stack push
+                            arrBlockTop++; // This part is using PUSH STACK
                             arrBlock[arrBlockTop] = randNum2;
                             refresh = true;         
                             randNum2 = randomNum(numStart, numEnd);
@@ -437,7 +437,7 @@ int main() {
                                 play = false; // Back to main menu
                                 clrScr();
                             }
-                        } else if (arrBlock[arrBlockTop] != randNum2) { // If it's land on different number, it perform a pop stack
+                        } else if (arrBlock[arrBlockTop] != randNum2) { // If it's land on different number, it perform a POP STACK
                             erasePrevAnim(blockMiddle, height - arrBlockTop - 1);
                             score--;
                             arrBlockTop--;
