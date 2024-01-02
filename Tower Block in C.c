@@ -174,20 +174,12 @@ struct Player {
 
 void clearLeaderboard() {
     FILE *file = fopen(FILENAME, "w");
-    if (file == NULL) {
-        printf("Error opening file for clearing leaderboard!\n");
-        exit(1);
-    }
     fclose(file);
 }
 
 // Step 3, save all the sorted ranking player
 void saveLeaderboard(struct Player *head) {
     FILE *file = fopen(FILENAME, "w");
-    if (file == NULL) {
-        printf("Error opening file for writing!\n");
-        return;
-    }
     while (head != NULL) {
         fprintf(file, "%s %d\n", head->name, head->totalScore);
         head = head->next;
@@ -248,10 +240,6 @@ struct Player *updateLeaderboard(struct Player *head, const char *name, int scor
     }
     // If the player does not exist, add a new player while maintaining sorted order
     struct Player *newPlayer = malloc(sizeof(struct Player));
-    if (newPlayer == NULL) {
-        printf("Memory allocation failed!\n");
-        exit(1);
-    }
     strcpy(newPlayer->name, name);
     newPlayer->totalScore = score;
     newPlayer->next = NULL;
@@ -341,16 +329,14 @@ char gameOverScr(const char str[]) {
 // START OF THE GAME //
 // ---------------------------------------------------------------------------------------------- //
 int main() {
-    struct Player *head = loadLeaderboard();
-    // Add or update players
-    //updateLeaderboard(head, "jayrald", 1231);
-    //updateLeaderboard(head, "john", 500);
-    //updateLeaderboard(head, "jayrald", 200);
-    // freeLinkedList(first);
+    struct Player *head = NULL;
+    freeLinkedList(head);
+    head = loadLeaderboard();
     char name[100];
     bool play = false;
     char key = clrInpBuffer();
     while (true){
+        saveLeaderboard(head);
         clrScr();
         intro();
         colorFont("reset");
@@ -360,7 +346,7 @@ int main() {
         do { key = _getch(); // Wait until user click
         } while (key != '1' && key != '2');
         if (key == '2'){
-            displayLeaderboard(head);
+            displayLeaderboard(head);   
             waitAnyKeyPress();
         }
         clrScr();
@@ -452,18 +438,22 @@ int main() {
                                 }
                             }
                         }
-                    } else if (key == 'c'){ // If user press c
+                    } else if (key == 'c'){ // If user press c, user will comment the following...
                         char input[50];
                         gotoXY(8, 2);
                         colorFont("reset");
                         printf("Enter your comment: ");
                         scanf("%100[^\n]", input); // This is how you input string to prevent from bug when animating
                         refresh = true;   
-                        if (strcmp(input, "autoG") == 0) { // If the user input "autoG"
+                        if (strcmp(input, "autoG") == 0) { // If the user input "autoG", 0 is true while 1 is false (idk why it's reverse)
                             autoG = true;
                         } else if (strcmp(input, "erase") == 0){
-                            clearLeaderboard();
+                            clearLeaderboard(); // Clear the leaderboard
                             refresh = false; // The reason is because it didn't clear the txt file due to struct stored
+                        } else if (strcmp(input, "load") == 0){
+                            head = updateLeaderboard(head, "God", 1231); // Add or update players
+                            head = updateLeaderboard(head, "hacker", 999);
+                            head = updateLeaderboard(head, "You", 1);
                         }
                         clrInpBufForScanf(); // This will reset the input to prevent from bug when animating
                     } else if (key == 'r'){ // if user press r, restart the game
