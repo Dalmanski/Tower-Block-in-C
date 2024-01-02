@@ -11,7 +11,7 @@
 //#define FILENAME "C:\\Users\\Jayrald John\\Documents\\Code\\Tower Block in C\\leaderboard.txt"
 
 void gotoXY(int x, int y) {
-    printf("\033[%d;%dH", y + 1, x + 1); // ANSI escape sequence for cursor positioning (Position X and Y)
+    printf("\033[%d;%dH", y + 1, x + 1); // ANSI escape sequence for cursor positioning (Pos X and Y)
 }
 
 int microsecond(double num) {
@@ -325,7 +325,6 @@ char gameOverScr(const char str[]) {
     } while (key != '1' && key != '2');
     return key;
 }
-
 // START OF THE GAME //
 // ---------------------------------------------------------------------------------------------- //
 int main() {
